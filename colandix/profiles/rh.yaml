@@ -1,0 +1,38 @@
+name: "Ressources Humaines"
+description: "Profil conformité pour les données RH et paie"
+version: "1.0"
+anssi_refs: ["R25", "R26", "R29"]
+detectors:
+  - type: regex
+    name: "pii_rh"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+    extra:
+      patterns: ["NIR", "EMAIL", "TEL_FR", "IBAN_FR"]
+
+  - type: regex
+    name: "donnees_sensibles_rh"
+    action: block
+    weight: 0.8
+    anssi_ref: "R25"
+    extra:
+      custom_patterns:
+        SALAIRE: "\\b(salaires?|r[eé]mun[eé]rations?|paie|fiche de paie)\\b"
+        SYNDICAT: "\\b(syndicats?|délégués?|repr[eé]sentants? du personnel|CSE)\\b"
+        EVALUATION: "\\b([eé]valuations?|entretiens? annuels?|notation|performance)\\b"
+
+  - type: ner
+    name: "identite_employe"
+    action: human_review
+    weight: 0.9
+    anssi_ref: "R25"
+    extra:
+      entities: ["PER", "ORG"]
+      combo_threshold: 1
+
+  - type: injection
+    name: "prompt_injection"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"

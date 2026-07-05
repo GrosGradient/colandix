@@ -1,0 +1,39 @@
+name: "Santé / HDS"
+description: "Profil conformité pour données de santé (AP-HP, CNAM, ARS)"
+version: "1.0"
+anssi_refs: ["R25", "R26", "R29"]
+detectors:
+  - type: regex
+    name: "pii_sante"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+    extra:
+      patterns: ["NIR", "FINESS", "EMAIL", "RPPS"]
+
+  - type: ner
+    name: "identite_patient"
+    action: human_review
+    weight: 0.9
+    anssi_ref: "R25"
+    extra:
+      entities: ["PER"]
+      combo_threshold: 1
+
+  - type: injection
+    name: "prompt_injection"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+
+  - type: topic
+    name: "perimetre_medical"
+    action: block
+    weight: 0.5
+    anssi_ref: "R26"
+    extra:
+      allowed: ["médical", "patient", "diagnostic", "traitement",
+                "CIM10", "PMSI", "hospitalier", "ordonnance",
+                "symptôme", "pathologie", "diabète", "protocole",
+                "insuline", "glycémie", "médecin", "soin", "clinique",
+                "urgence", "prescription", "dosage"]

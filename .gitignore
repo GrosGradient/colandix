@@ -1,0 +1,22 @@
+**/.venv/
+dist/
+build/
+site/
+*.egg-info/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.vscode/
+.idea/
+
+# Caches
+**/.ruff_cache/
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ipynb_checkpoints/
+**/.DS_Store
+
+init-repo.sh

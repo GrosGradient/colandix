@@ -1,0 +1,26 @@
+name: "Générique"
+description: "Profil universel — minimum de conformité ANSSI-PA-102"
+version: "1.0"
+anssi_refs: ["R25", "R29"]
+detectors:
+  - type: regex
+    name: "pii_universel"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+    extra:
+      patterns: ["EMAIL", "EMAIL_OBFUSQUE", "TEL_FR", "TEL_INTL", "NIR", "IBAN_FR", "IBAN_GENERIQUE",
+                 "PASSEPORT_FR", "CARD_PAN", "CARD_AMEX", "CARD_DISCOVER_UNIONPAY",
+                 "SSN_US", "NINO_UK", "IP_PRIVE", "CREDENTIAL"]
+
+  - type: entropy
+    name: "secrets_generiques"
+    action: block
+    weight: 0.8
+    anssi_ref: "R25"
+
+  - type: injection
+    name: "prompt_injection"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"

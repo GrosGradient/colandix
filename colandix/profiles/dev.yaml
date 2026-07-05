@@ -1,0 +1,48 @@
+name: "Dev / DevOps"
+description: "Profil conformité pour les équipes de développement"
+version: "1.0"
+anssi_refs: ["R25", "R31"]
+detectors:
+  - type: entropy
+    name: "secrets_entropie"
+    action: block
+    weight: 1.0
+    anssi_ref: "R31"
+    extra:
+      threshold: 4.2
+      min_length: 12
+
+  - type: regex
+    name: "credentials_code"
+    action: block
+    weight: 1.0
+    anssi_ref: "R31"
+    extra:
+      patterns: ["API_KEY_SK", "API_KEY_GENERIC", "CREDENTIAL", "DB_URL", "CONNECTION_STRING",
+                 "PRIVATE_KEY_HEADER", "IP_PRIVE", "IPV6", "AWS_ACCESS_KEY_ID", "AWS_SECRET_KEY",
+                 "GITHUB_TOKEN", "GITLAB_TOKEN", "ANTHROPIC_API_KEY", "JWT_JWS",
+                 "SLACK_TOKEN", "HUGGINGFACE_TOKEN", "STRIPE_SK", "STRIPE_PK",
+                 "GOOGLE_API_KEY", "NPM_TOKEN", "TWILIO_SID", "CRYPTO_ETH", "CRYPTO_BTC"]
+
+  - type: regex
+    name: "jeton_alnum_mixed"
+    action: human_review
+    weight: 0.85
+    anssi_ref: "R31"
+    extra:
+      patterns: ["ALNUM_MIXED_12"]
+
+  - type: injection
+    name: "prompt_injection"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+
+  - type: topic
+    name: "modules_critiques"
+    action: block
+    weight: 0.6
+    anssi_ref: "R26"
+    extra:
+      blocked: ["cryptographie", "authentification",
+                "gestion des droits", "élévation de privilèges"]

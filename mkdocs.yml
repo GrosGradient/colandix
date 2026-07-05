@@ -1,0 +1,77 @@
+site_name: Colandix
+site_url: https://grosgradient.github.io/colandix
+repo_url: https://github.com/GrosGradient/colandix
+edit_uri: edit/main/docs/
+copyright: "Bâti par <a href='https://www.grosgradient.com/' target='_blank' rel='noopener'>Gros Gradient</a>"
+
+validation:
+  links:
+    not_found: warn
+
+theme:
+  name: material
+  font:
+    text: Inter
+    code: Fira Code
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.path
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Passer au mode sombre
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Passer au mode clair
+
+nav:
+  - Home: index.md
+  - Quick start: quickstart.md
+  - Profiles & triggers: triggers-par-profil.md
+  - Architecture: architecture.md
+  - Testing: testing.md
+  - ANSSI compliance: compliance.md
+  - Contributing: contributing.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - attr_list

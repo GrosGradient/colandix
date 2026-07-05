@@ -1,0 +1,47 @@
+name: "Strict / couverture large"
+description: >
+  Tous les motifs regex intégrés, entropie, injection et NER identité.
+  Sans TopicDetector (pas de périmètre métier). Risque de faux positifs
+  élevé sur des textes contenant identifiants numériques ou marquages.
+version: "1.0"
+anssi_refs: ["R25", "R29", "R31"]
+detectors:
+  - type: regex
+    name: "pii_complet"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+    extra:
+      exclude_patterns: ["ALNUM_MIXED_12"]
+
+  - type: regex
+    name: "jeton_alnum_mixed"
+    action: human_review
+    weight: 0.85
+    anssi_ref: "R25"
+    extra:
+      patterns: ["ALNUM_MIXED_12"]
+
+  - type: entropy
+    name: "secrets_entropie"
+    action: block
+    weight: 0.8
+    anssi_ref: "R31"
+    extra:
+      threshold: 4.2
+      min_length: 12
+
+  - type: injection
+    name: "prompt_injection"
+    action: block
+    weight: 1.0
+    anssi_ref: "R25"
+
+  - type: ner
+    name: "identite_ner"
+    action: human_review
+    weight: 0.9
+    anssi_ref: "R25"
+    extra:
+      entities: ["PER"]
+      combo_threshold: 1

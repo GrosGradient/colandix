@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "colandix"
+version = "0.1.0"
+description = "ANSSI-PA-102 compliance layer for LLM inference. Runs locally. No network calls in the core path."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Gros Gradient" }]
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://grosgradient.github.io/colandix"
+Repository = "https://github.com/GrosGradient/colandix"
+"Bug Tracker" = "https://github.com/GrosGradient/colandix/issues"
+Documentation = "https://grosgradient.github.io/colandix"
+
+[project.optional-dependencies]
+# SpaCy runtime only; install a pipeline with: python -m spacy download <pipeline_name>
+ner = ["spacy>=3.7,<4.0"]
+# Medium French pipeline on PyPI (pulls a compatible spaCy)
+ner-fr = ["fr-core-news-md>=3.7"]
+# German / Spanish / Italian / Portuguese / English: use [ner], then
+# `python -m spacy download de_core_news_md` (etc.) — safer than typosquat PyPI names
+ner-de = ["spacy>=3.7,<4.0"]
+ner-es = ["spacy>=3.7,<4.0"]
+ner-it = ["spacy>=3.7,<4.0"]
+ner-pt = ["spacy>=3.7,<4.0"]
+ner-en = ["spacy>=3.7,<4.0"]
+# Installs every pipeline we ship as a direct wheel dependency today (FR md only).
+ner-all = ["fr-core-news-md>=3.7"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "types-pyyaml>=6.0.12.20260408",
+    "ipykernel>=7.2.0",
+    "mkdocs-material>=9.0",
+    "mkdocstrings[python]>=0.27",
+    "spacy>=3.7,<4.0",
+    "fr-core-news-md>=3.7",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["colandix"]
