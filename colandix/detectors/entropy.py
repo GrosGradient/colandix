@@ -94,13 +94,23 @@ class EntropyDetector(BaseDetector):
         Mot-clé de secret suivi d'une valeur.
         Retourne (True, valeur[:30]) ou (False, None).
         """
+        values = self._detect_context_values(text)
+        if values:
+            return True, values[0][:30]
+        return False, None
+
+    def _detect_context_values(self, text: str) -> list[str]:
+        """
+        Mot-clé de secret suivi d'une valeur.
+        Retourne toutes les valeurs trouvées (texte exact, non tronqué).
+        """
+        values: list[str] = []
         for pattern in self.CONTEXT_PATTERNS:
-            m = pattern.search(text)
-            if m:
+            for m in pattern.finditer(text):
                 val = m.group(1)
                 if val:
-                    return True, val[:30]
-        return False, None
+                    values.append(val)
+        return values
 
     def _ratio_voyelles(self, s: str) -> float:
         """
@@ -162,18 +172,22 @@ class EntropyDetector(BaseDetector):
 
         Ne fait jamais d'appel réseau. 100% local.
         """
-        context_found, context_value = self._detect_context(text)
-        if context_found and context_value is not None:
+        context_values = self._detect_context_values(text)
+        if context_values:
+            # Evidence journalisée : jamais la valeur du secret.
             return self._make_event(
                 matched=True,
                 score=1.0,
-                evidence=f"contexte: {context_value}",
+                evidence=f"contexte: {len(context_values)} valeur(s)",
                 trigger_type="PASSWORD",
+                match_text=context_values[0],
+                matches=[(v, "PASSWORD") for v in context_values],
             )
 
         tokens = self._extract_tokens(text)
         best_score = 0.0
         best_evidence: Optional[str] = None
+        flagged: list[str] = []
 
         # Entropie Shannon sous le seuil mais proche : jeton long avec forte
         # hétérogénéité (types de caractères) — ex. clés avec répétitions
@@ -203,11 +217,13 @@ class EntropyDetector(BaseDetector):
                 if not gray_structural:
                     continue
                 score_final = 0.75
-                best_evidence = (
-                    f"token:{token[:15]}.. e:{entropy:.2f} "
-                    f"c:{score_complexite:.2f} gray"
-                )
-                best_score = max(best_score, score_final)
+                flagged.append(token)
+                if score_final > best_score:
+                    best_score = score_final
+                    best_evidence = (
+                        f"token len:{len(token)} e:{entropy:.2f} "
+                        f"c:{score_complexite:.2f} gray"
+                    )
                 continue
 
             score_entropie = min(
@@ -239,10 +255,12 @@ class EntropyDetector(BaseDetector):
             ):
                 score_final = max(score_final, 0.90)
 
+            if score_final > 0:
+                flagged.append(token)
             if score_final > best_score:
                 best_score = score_final
-                # Format compact pour tenir dans les 50 chars d'evidence
-                best_evidence = f"token:{token[:15]}.. e:{entropy:.2f} v:{rv:.2f}"
+                # Format compact (50 chars max) ; jamais le contenu du jeton.
+                best_evidence = f"token len:{len(token)} e:{entropy:.2f} v:{rv:.2f}"
                 if score_complexite > 0.30:
                     best_evidence += f" c:{score_complexite:.2f}"
 
@@ -252,6 +270,8 @@ class EntropyDetector(BaseDetector):
                 score=best_score,
                 evidence=best_evidence,
                 trigger_type="TOKEN",
+                match_text=flagged[0] if flagged else None,
+                matches=[(t, "TOKEN") for t in flagged],
             )
 
         return self._make_event(matched=False, score=0.0)

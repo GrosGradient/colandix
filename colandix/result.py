@@ -43,11 +43,25 @@ class DetectionEvent:
     # Texte exact de la correspondance : masquage correct sans fuite RGPD via
     # evidence tronquée. Ne pas sérialiser ni logger (même statut que le texte brut).
     match_text: Optional[str] = field(default=None, repr=False)
+    # Toutes les correspondances à masquer : (texte exact, trigger_type).
+    # Même statut que ``match_text`` : jamais sérialisé ni journalisé.
+    matches: list[tuple[str, Optional[str]]] = field(
+        default_factory=list, repr=False
+    )
+    # Erreur interne du détecteur (exception, modèle absent…). Un événement en
+    # erreur n'a rien analysé : voir ``PipelineConfig.fail_closed``.
+    error: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not self.matched:
             self.action = Action.PASS
             self.score = 0.0
+            self.match_text = None
+            self.matches = []
+        elif self.match_text and not self.matches:
+            self.matches = [(self.match_text, self.trigger_type)]
+        elif self.matches and self.match_text is None:
+            self.match_text = self.matches[0][0]
 
         if self.evidence is not None and len(self.evidence) > 50:
             self.evidence = self.evidence[:50]
@@ -104,4 +118,18 @@ class PipelineConfig:
     log_outputs: bool = True
     raise_on_block: bool = False
     max_text_length: int = 10_000
+    # Texte plus long que ``max_text_length`` : "block" (défaut, fail-closed :
+    # la partie non analysée ne doit pas partir vers le LLM) ou "truncate"
+    # (ancien comportement : seul le début est analysé et renvoyé).
+    on_overflow: str = "block"
+    # True : un détecteur en erreur (exception, spaCy / modèle absent) bloque
+    # la requête au lieu d'être ignoré.
+    fail_closed: bool = False
+
+    def __post_init__(self) -> None:
+        if self.on_overflow not in ("block", "truncate"):
+            raise ValueError(
+                f"on_overflow doit valoir 'block' ou 'truncate', reçu : "
+                f"{self.on_overflow!r}"
+            )
 

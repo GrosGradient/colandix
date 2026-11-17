@@ -49,6 +49,11 @@ class ColandixLogger:
                 for e in result.events
                 if e.matched
             ],
+            # Détecteurs en erreur : rien n'a été analysé par eux (fail-open
+            # sauf ``PipelineConfig.fail_closed``).
+            "detector_errors": [
+                e.detector_name for e in result.events if e.error
+            ],
             "nb_detectors_run": len(result.events),
             "anssi_framework": "ANSSI-PA-102",
         }

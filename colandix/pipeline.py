@@ -3,7 +3,13 @@ from colandix.detectors.base import BaseDetector
 from colandix.exceptions import ColandixBlockedError
 from colandix.logger import ColandixLogger
 from colandix.profiles.loader import load_profile, load_profile_from_yaml
-from colandix.result import Action, PipelineConfig, ScanDirection, ScanResult
+from colandix.result import (
+    Action,
+    DetectionEvent,
+    PipelineConfig,
+    ScanDirection,
+    ScanResult,
+)
 from colandix.scoring import aggregate_score, apply_redactions, explain_decision
 
 
@@ -110,13 +116,20 @@ class GuardPipeline:
 
         # Tronquer si nécessaire
         text_to_scan = text[: self.config.max_text_length]
+        overflow = len(text) > self.config.max_text_length
 
         # Lancer tous les détecteurs activés
         events = []
         for detector in self.detectors:
             if detector.is_enabled():
                 event = detector.analyze(text_to_scan)
+                if event.error and self.config.fail_closed:
+                    event = self._fail_closed_event(event)
                 events.append(event)
+
+        # Fail-closed : la partie non analysée ne doit pas passer.
+        if overflow and self.config.on_overflow == "block":
+            events.append(self._overflow_event(len(text)))
 
         # Décision globale
         global_score, action = aggregate_score(events)
@@ -139,6 +152,37 @@ class GuardPipeline:
         self._logger.log(result, user_id=user_id)
 
         return result
+
+    @staticmethod
+    def _fail_closed_event(event: DetectionEvent) -> DetectionEvent:
+        """Transforme un détecteur en erreur en blocage (``fail_closed``)."""
+        return DetectionEvent(
+            detector_name=event.detector_name,
+            detector_type=event.detector_type,
+            matched=True,
+            score=1.0,
+            action=Action.BLOCK,
+            evidence=f"fail_closed: {event.error}",
+            trigger_type="GENERIC",
+            anssi_ref=event.anssi_ref,
+            error=event.error,
+        )
+
+    def _overflow_event(self, length: int) -> DetectionEvent:
+        """Blocage d'un texte plus long que ``max_text_length``."""
+        return DetectionEvent(
+            detector_name="max_text_length",
+            detector_type="GuardPipeline",
+            matched=True,
+            score=1.0,
+            action=Action.BLOCK,
+            evidence=(
+                f"texte trop long : {length} > {self.config.max_text_length}"
+            ),
+            trigger_type="GENERIC",
+            anssi_ref="R25",
+        )
+
     def find_all_candidates(self, text: str) -> list[dict]:
         """
         Explore le texte et retourne TOUS les candidats détectés par TOUS
