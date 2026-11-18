@@ -43,7 +43,12 @@ def safe_analyze(func):
         try:
             return func(self, text, *args, **kwargs)
         except Exception as e:
-            print(f"[colandix] ERREUR détecteur '{self.config.name}': {e}")
+            # Seul le type d'exception est affiché : le message peut contenir
+            # un extrait du texte analysé.
+            print(
+                f"[colandix] ERREUR détecteur '{self.config.name}': "
+                f"{type(e).__name__}"
+            )
             # 7 chars pour "ERROR: " + 43 chars max = 50 chars max
             evidence_msg = "ERROR: " + str(e)[:43]
             return DetectionEvent(
@@ -54,6 +59,7 @@ def safe_analyze(func):
                 action=Action.PASS,
                 evidence=evidence_msg,
                 anssi_ref=self.config.anssi_ref,
+                error=type(e).__name__,
             )
     return wrapper
 
@@ -95,6 +101,8 @@ class BaseDetector(ABC):
         evidence: Optional[str] = None,
         trigger_type: Optional[str] = None,
         match_text: Optional[str] = None,
+        matches: Optional[list[tuple[str, Optional[str]]]] = None,
+        error: Optional[str] = None,
     ) -> DetectionEvent:
         """Helper protégé pour construire un DetectionEvent standardisé."""
 
@@ -115,6 +123,8 @@ class BaseDetector(ABC):
             trigger_type=tt,
             anssi_ref=self.config.anssi_ref,
             match_text=mt,
+            matches=list(matches) if matched and matches else [],
+            error=error,
         )
 
     def __repr__(self) -> str:

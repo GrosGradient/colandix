@@ -121,26 +121,34 @@ def apply_redactions(
     """
     Remplace des fragments détectés par des tags typés (ou ``placeholder``).
 
-    - Priorité : ``match_text`` (toutes les occurrences), sinon fragments issus
-      de ``_mask_fragments_from_event`` (ex. preuves NER / topic).
-    - ``InjectionDetector`` et ``EntropyDetector`` ne modifient pas le texte.
+    - Priorité : ``matches`` (toutes les correspondances, chacune avec son
+      propre tag), puis ``match_text``, sinon fragments issus de
+      ``_mask_fragments_from_event`` (détecteurs tiers, preuves NER / topic).
+    - ``InjectionDetector`` ne modifie pas le texte.
     - Les spans qui se chevauchent sont fusionnés (le plus large l'emporte).
     """
     spans: list[tuple[int, int, str]] = []
 
+    def tag_for(trigger_type: str | None) -> str:
+        if placeholder is not None:
+            return placeholder
+        return get_redaction_tag(trigger_type)
+
     for event in events:
         if not event.matched:
             continue
-        if event.detector_type in ("InjectionDetector", "EntropyDetector"):
+        if event.detector_type == "InjectionDetector":
             continue
 
-        if placeholder is not None:
-            tag = placeholder
-        else:
-            tag = get_redaction_tag(event.trigger_type)
-
+        tag = tag_for(event.trigger_type)
         mt = getattr(event, "match_text", None)
-        if mt is not None and len(mt) >= _MIN_MASK_FRAGMENT_LEN:
+        matches = getattr(event, "matches", None) or []
+        if matches:
+            for literal, trigger in matches:
+                _add_spans_for_literal(
+                    text, literal, tag_for(trigger or event.trigger_type), spans
+                )
+        elif mt is not None and len(mt) >= _MIN_MASK_FRAGMENT_LEN:
             _add_spans_for_literal(text, mt, tag, spans)
         else:
             for frag in _mask_fragments_from_event(event):

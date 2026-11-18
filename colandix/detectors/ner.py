@@ -162,6 +162,18 @@ class NERDetector(BaseDetector):
             return
         event.action = Action.HUMAN_REVIEW
 
+    def _iter_entities(self, text: str):
+        """
+        Entités de tout le texte, analysé par tranches de ``max_text_length``
+        caractères (auparavant, seul le début du texte était analysé).
+        """
+        nlp = self._nlp
+        assert nlp is not None
+        step = max(self._max_text_length, 1)
+        chunks = [text[i : i + step] for i in range(0, len(text), step)] or [""]
+        for doc in nlp.pipe(chunks):
+            yield from doc.ents
+
     @safe_analyze
     def analyze(self, text: str) -> DetectionEvent:
         """
@@ -169,38 +181,44 @@ class NERDetector(BaseDetector):
         présents. Score toujours **1.0** lors d'un match (pas de score fractionné).
         """
         if not self._spacy_available:
-            return self._make_event(matched=False, score=0.0)
+            # Rien n'a été analysé : signalé via ``error`` pour que le pipeline
+            # puisse bloquer (``PipelineConfig.fail_closed``).
+            return self._make_event(
+                matched=False,
+                score=0.0,
+                error=f"NER indisponible (spaCy / modèle {self._model_name})",
+            )
 
-        nlp = self._nlp
-        assert nlp is not None
-
-        truncated_text = text[: self._max_text_length]
-        doc = nlp(truncated_text)
-
-        found_types = set()
-        evidence_parts = []
+        found_types: set[str] = set()
+        type_counts: dict[str, int] = {}
+        matches: list[tuple[str, Optional[str]]] = []
         first_per_text: Optional[str] = None
 
-        for ent in doc.ents:
+        for ent in self._iter_entities(text):
             if ent.label_ not in self._entities:
                 continue
             if ent.label_ in PERSON_ENTITY_LABELS and not self._keep_per_span(ent.text):
                 continue
             found_types.add(ent.label_)
-            evidence_parts.append(f"{ent.label_}:{ent.text[:15]}")
+            type_counts[ent.label_] = type_counts.get(ent.label_, 0) + 1
+            matches.append((ent.text, "PERSON_NAME"))
             if ent.label_ in PERSON_ENTITY_LABELS and first_per_text is None:
                 first_per_text = ent.text
 
         matched_types = found_types.intersection(set(self._entities))
 
         if len(matched_types) >= self._combo_threshold:
-            evidence = ", ".join(evidence_parts)
+            # Evidence journalisée : types d'entités et effectifs, jamais le texte.
+            evidence = ", ".join(
+                f"{label}:{type_counts[label]}" for label in sorted(matched_types)
+            )
             event = self._make_event(
                 matched=True,
                 score=1.0,
                 evidence=evidence,
                 trigger_type="PERSON_NAME",
-                match_text=first_per_text,
+                match_text=first_per_text or matches[0][0],
+                matches=matches,
             )
             self._apply_ner_action_policy(event)
             return event
@@ -215,14 +233,8 @@ class NERDetector(BaseDetector):
         if not self._spacy_available:
             return {}
 
-        nlp = self._nlp
-        assert nlp is not None
-
-        truncated_text = text[: self._max_text_length]
-        doc = nlp(truncated_text)
-
         entities: dict[str, list[str]] = {}
-        for ent in doc.ents:
+        for ent in self._iter_entities(text):
             if ent.label_ in PERSON_ENTITY_LABELS and not self._keep_per_span(ent.text):
                 continue
             if ent.label_ not in entities:

@@ -238,22 +238,37 @@ class RegexDetector(BaseDetector):
     def analyze(self, text: str) -> DetectionEvent:
         """
         Analyse le texte à la recherche de correspondances Regex.
-        S'arrête et retourne au premier match trouvé.
-        """
-        for name, compiled_regex in self._compiled.items():
-            match = compiled_regex.search(text)
-            if match:
-                evidence = f"{name}: {match.group()[:30]}"
-                trigger = self.PATTERN_TO_TRIGGER.get(name, "GENERIC")
-                return self._make_event(
-                    matched=True,
-                    score=1.0,
-                    evidence=evidence,
-                    trigger_type=trigger,
-                    match_text=match.group(),
-                )
 
-        return self._make_event(matched=False, score=0.0)
+        Toutes les correspondances de tous les motifs sont collectées dans
+        ``matches`` (pour le masquage). ``trigger_type`` et ``evidence`` suivent
+        le premier motif (ordre du dictionnaire) qui a matché. L'evidence ne
+        contient que des noms de motifs, jamais la valeur détectée (journalisée).
+        """
+        matches: list[tuple[str, str]] = []
+        names: list[str] = []
+        for name, compiled_regex in self._compiled.items():
+            found = False
+            for match in compiled_regex.finditer(text):
+                if not match.group():
+                    continue
+                found = True
+                trigger = self.PATTERN_TO_TRIGGER.get(name, "GENERIC")
+                matches.append((match.group(), trigger))
+            if found:
+                names.append(name)
+
+        if not matches:
+            return self._make_event(matched=False, score=0.0)
+
+        first_trigger = self.PATTERN_TO_TRIGGER.get(names[0], "GENERIC")
+        return self._make_event(
+            matched=True,
+            score=1.0,
+            evidence=", ".join(names),
+            trigger_type=first_trigger,
+            match_text=matches[0][0],
+            matches=matches,
+        )
 
     def find_all_candidates(self, text: str) -> list[dict]:
         """Retourne TOUS les matches de TOUS les motifs configurés."""

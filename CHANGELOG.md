@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Logs, `ScanResult.reason` and `ColandixBlockedError` no longer contain detected values: regex evidence is the pattern name(s), NER evidence is entity counts (`PER:2, LOC:1`), entropy evidence is the token length and scores.
+- `sanitized_text` now masks **every** match (all occurrences of all regex patterns, each with its own tag; all NER entities; entropy secrets), not only the first one.
+- Texts longer than `max_text_length` are now blocked by default (`PipelineConfig.on_overflow="block"`), since the tail was never scanned. Use `on_overflow="truncate"` for the previous behaviour.
+- NER now analyses the whole text in chunks of `max_text_length` instead of only the first chunk.
+
+### Added
+
+- `PipelineConfig.fail_closed`: a detector that raises, or a `NERDetector` without spaCy / model, blocks the request instead of being skipped.
+- `DetectionEvent.matches` (all values to mask, never serialised) and `DetectionEvent.error`.
+- `detector_errors` field in log entries.
+
 ## [0.1.0] - 2026-05-06
 
 ### Added
