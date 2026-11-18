@@ -53,6 +53,20 @@ DEFAULT_PER_SPAN_BLACKLIST = frozenset(
 # Labels SpaCy « personne » selon les pipelines (FR/DE/… vs EN).
 PERSON_ENTITY_LABELS = frozenset({"PER", "PERSON"})
 
+# Label SpaCy -> trigger_type (tag de masquage). Défaut : GENERIC.
+ENTITY_TRIGGER_TYPES: dict[str, str] = {
+    "PER": "PERSON_NAME",
+    "PERSON": "PERSON_NAME",
+    "LOC": "LOCATION",
+    "GPE": "LOCATION",
+    "ORG": "ORGANIZATION",
+}
+
+
+def entity_trigger_type(label: str) -> str:
+    """Trigger de masquage pour un label d'entité SpaCy."""
+    return ENTITY_TRIGGER_TYPES.get(label, "GENERIC")
+
 
 class NERDetector(BaseDetector):
     """
@@ -201,7 +215,7 @@ class NERDetector(BaseDetector):
                 continue
             found_types.add(ent.label_)
             type_counts[ent.label_] = type_counts.get(ent.label_, 0) + 1
-            matches.append((ent.text, "PERSON_NAME"))
+            matches.append((ent.text, entity_trigger_type(ent.label_)))
             if ent.label_ in PERSON_ENTITY_LABELS and first_per_text is None:
                 first_per_text = ent.text
 
@@ -216,7 +230,11 @@ class NERDetector(BaseDetector):
                 matched=True,
                 score=1.0,
                 evidence=evidence,
-                trigger_type="PERSON_NAME",
+                # PERSON_NAME dès qu'une personne est présente, sinon le type
+                # de la première entité (ex. ORG + LOC -> ORGANIZATION).
+                trigger_type=(
+                    "PERSON_NAME" if first_per_text is not None else matches[0][1]
+                ),
                 match_text=first_per_text or matches[0][0],
                 matches=matches,
             )
@@ -227,14 +245,17 @@ class NERDetector(BaseDetector):
 
     def get_entities(self, text: str) -> dict[str, list[str]]:
         """
-        Retourne TOUTES les entités trouvées sous forme de dict {label: [textes]}.
-        Utile pour le debug et les tests.
+        Retourne les entités des types configurés (``entities``) sous forme de
+        dict {label: [textes]}. Utile pour le debug et les tests.
         """
         if not self._spacy_available:
             return {}
 
         entities: dict[str, list[str]] = {}
         for ent in self._iter_entities(text):
+            # Seuls les types demandés par le profil (``entities``).
+            if ent.label_ not in self._entities:
+                continue
             if ent.label_ in PERSON_ENTITY_LABELS and not self._keep_per_span(ent.text):
                 continue
             if ent.label_ not in entities:

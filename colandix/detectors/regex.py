@@ -45,12 +45,15 @@ class RegexDetector(BaseDetector):
         # Identifiants entreprises (France)
         "SIRET": r"\b[0-9]{14}\b",
         "SIREN": r"\b[0-9]{9}\b",
-        "IBAN_FR": r"\bFR[0-9]{2}[0-9A-Z]{23}\b",
+        # IBAN : forme compacte ou groupée par espaces (« FR76 3000 6000 … »).
+        # (?-i:…) : majuscules seulement, sinon IGNORECASE + espaces optionnels
+        # matcheraient des mots ordinaires.
+        "IBAN_FR": r"(?-i:\bFR[0-9]{2}(?: ?[0-9A-Z]){23}\b)",
         # Twilio Account SID (AC + 32) — avant IBAN_GENERIQUE
         # (sinon "AC12…" matche IBAN)
         "TWILIO_SID": r"\bAC[a-zA-Z0-9]{32}\b",
         # IBAN hors France (ISO 13616 simplifié : pays + clé + BBAN alphanumérique)
-        "IBAN_GENERIQUE": r"\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b",
+        "IBAN_GENERIQUE": r"(?-i:\b[A-Z]{2}[0-9]{2}(?: ?[A-Z0-9]){11,30}\b)",
         # Passeport français (2 chiffres + 2 lettres + 5 chiffres)
         "PASSEPORT_FR": r"\b[0-9]{2}[A-Z]{2}[0-9]{5}\b",
         # PAN 16 : Visa / Mastercard ; Amex 15 ch. → CARD_AMEX ;

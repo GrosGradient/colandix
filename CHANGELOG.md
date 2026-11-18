@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DetectionEvent.matches` (all values to mask, never serialised) and `DetectionEvent.error`.
 - `detector_errors` field in log entries.
 
+### Fixed
+
+- `IBAN_FR` / `IBAN_GENERIQUE` detect IBANs written in groups separated by spaces. Both patterns are now uppercase-only to limit false positives.
+- `NERDetector.get_entities()` / `find_all_candidates()` only return the entity types configured in `entities` (they returned `MISC`, `LOC`… for a `PER`-only profile).
+- NER masking uses one tag per entity type (`[PERSON_REDACTED]`, `[LOCATION_REDACTED]`, `[ORG_REDACTED]`), and the event no longer reports `PERSON_NAME` when no person was found.
+
 ## [0.1.0] - 2026-05-06
 
 ### Added
