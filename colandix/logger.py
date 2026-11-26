@@ -3,6 +3,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 
+from colandix._version import __version__
 from colandix.result import PipelineConfig, ScanDirection, ScanResult
 
 
@@ -30,7 +31,7 @@ class ColandixLogger:
         entry = {
             "event_id": str(uuid.uuid4()),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "colandix_version": "0.1.0",
+            "colandix_version": __version__,
             "direction": result.direction.value,
             "user_id_hash": self._hash_user(user_id),
             "blocked": result.blocked,

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 ### Security
 
 - Logs, `ScanResult.reason` and `ColandixBlockedError` no longer contain detected values: regex evidence is the pattern name(s), NER evidence is entity counts (`PER:2, LOC:1`), entropy evidence is the token length and scores.
@@ -25,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `IBAN_FR` / `IBAN_GENERIQUE` detect IBANs written in groups separated by spaces. Both patterns are now uppercase-only to limit false positives.
 - `NERDetector.get_entities()` / `find_all_candidates()` only return the entity types configured in `entities` (they returned `MISC`, `LOC`… for a `PER`-only profile).
 - NER masking uses one tag per entity type (`[PERSON_REDACTED]`, `[LOCATION_REDACTED]`, `[ORG_REDACTED]`), and the event no longer reports `PERSON_NAME` when no person was found.
+- Logs (`colandix_version`) and compliance reports reported `0.1.0` whatever the installed version. The version now has a single source, `colandix/_version.py`, also read by the build.
 
 ## [0.1.0] - 2026-05-06
 
@@ -36,5 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redaction, scoring, and structured scan results
 - Documentation site (MkDocs Material) and test suite
 
-[Unreleased]: https://github.com/GrosGradient/colandix/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/GrosGradient/colandix/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/GrosGradient/colandix/releases/tag/v0.2.0
 [0.1.0]: https://github.com/GrosGradient/colandix/releases/tag/v0.1.0

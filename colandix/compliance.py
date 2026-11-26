@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from colandix._version import __version__
 from colandix.detectors.base import BaseDetector
 from colandix.redaction import REDACTION_TAGS
 from colandix.result import Action
@@ -53,7 +54,7 @@ ANSSI_PA102_REQUIREMENTS: dict[str, dict] = {
 
 
 def generate_report(
-    detectors: list[BaseDetector], profile_name: str, version: str = "0.1.0"
+    detectors: list[BaseDetector], profile_name: str, version: str = __version__
 ) -> dict:
     """
     Génère un rapport de conformité ANSSI-PA-102 basé sur les détecteurs actifs.

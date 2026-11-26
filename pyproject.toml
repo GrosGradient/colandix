@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "colandix"
-version = "0.1.0"
+dynamic = ["version"]
 description = "ANSSI-PA-102 compliance layer for LLM inference. Runs locally. No network calls in the core path."
 readme = "README.md"
 license = "MIT"
@@ -55,6 +55,9 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[tool.hatch.version]
+path = "colandix/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["colandix"]
